@@ -47,6 +47,11 @@ class Game:
         self.start_time = time.time()
         self.stage_start_time = time.time()
         self.items_collected = 0
+        self.victory_time = None  # 승리 시점의 시간 저장
+        
+        # 체크포인트 시스템
+        self.checkpoint_stage = 1  # 마지막 체크포인트 스테이지
+        self.stage_checkpoints = {1: False, 2: False, 3: False}  # 각 스테이지 체크포인트 도달 여부
 
         # 화면 효과
         self.screen_shake_timer = 0
@@ -62,11 +67,18 @@ class Game:
         self.deaths = 0
         self.start_time = time.time()
         self.items_collected = 0
+        self.checkpoint_stage = 1
+        self.stage_checkpoints = {1: False, 2: False, 3: False}
         self.load_stage(1)
 
     def load_stage(self, stage_num):
         self.stage_start_time = time.time()
         self.stage_manager.load_stage(stage_num, self.player)
+        
+        # 스테이지 진입 시 체크포인트 활성화
+        if stage_num not in self.stage_checkpoints or not self.stage_checkpoints[stage_num]:
+            self.stage_checkpoints[stage_num] = True
+            self.checkpoint_stage = stage_num
 
         # 보스 생성 (스테이지 3)
         if stage_num == 3:
@@ -84,7 +96,8 @@ class Game:
         self.deaths += 1
         self.player.hearts = self.player.max_hearts
         self.player.invincible_time = 60
-        self.load_stage(1)
+        # 마지막 체크포인트 스테이지에서 재시작
+        self.load_stage(self.checkpoint_stage)
 
     def update(self, keys):
         if self.game_state != GAME_STATE_PLAYING:
@@ -92,6 +105,14 @@ class Game:
 
         # 플레이어 업데이트
         self.player.update(keys, self.stage_manager.platforms)
+        
+        # 원거리 공격 자동 발사 (X 키를 누르고 있으면)
+        if keys[pygame.K_x]:
+            self.ranged_attack()
+        
+        # 근접 공격 자동 발사 (Z 키를 누르고 있으면)
+        if keys[pygame.K_z]:
+            self.melee_attack()
 
         # 발판 업데이트
         self.stage_manager.update_platforms(self.player)
@@ -167,7 +188,7 @@ class Game:
                     self.boss.width,
                     self.boss.height,
                 ):
-                    if self.boss.take_damage(1):
+                    if self.boss.take_damage(5):  # 원거리 공격 데미지 5배
                         projectile.active = False
                         self.particles.extend(
                             create_particle_burst(
@@ -178,6 +199,7 @@ class Game:
                             )
                         )
                         if self.boss.health <= 0:
+                            self.victory_time = time.time()
                             self.game_state = GAME_STATE_VICTORY
                     else:
                         # 막힘
@@ -275,6 +297,19 @@ class Game:
                 ):
                     chest.opened = True
                     self.collect_item(chest.item)
+        
+        # 체크포인트 업데이트
+        for checkpoint in self.stage_manager.checkpoints:
+            if checkpoint.check_activation(self.player):
+                # 체크포인트 활성화 시 파티클 효과
+                self.particles.extend(
+                    create_particle_burst(
+                        checkpoint.x + checkpoint.width // 2,
+                        checkpoint.y + checkpoint.height // 2,
+                        20,
+                        [GREEN, YELLOW, WHITE]
+                    )
+                )
 
         # 보스 업데이트
         if self.boss:
@@ -309,6 +344,7 @@ class Game:
 
             # 보스 사망
             if self.boss.health <= 0:
+                self.victory_time = time.time()
                 self.game_state = GAME_STATE_VICTORY
 
         # 파티클 업데이트
@@ -457,6 +493,7 @@ class Game:
                     self.start_screen_shake(5)
 
                     if self.boss.health <= 0:
+                        self.victory_time = time.time()
                         self.game_state = GAME_STATE_VICTORY
                 else:
                     # 막힘!
@@ -524,11 +561,8 @@ class Game:
             return shake_screen(self.screen_shake_intensity)
         return (0, 0)
 
-    def draw(self, screen):
-        if self.game_state == GAME_STATE_MENU:
-            self.ui_manager.draw_menu(screen)
-            return
-
+    def draw_game_screen(self, screen):
+        """게임 화면 그리기 (개발 메뉴와 공유)"""
         # 배경
         screen.fill(BLACK)
 
@@ -542,6 +576,10 @@ class Game:
         # 함정
         for trap in self.stage_manager.traps:
             trap.draw(screen, shake_offset)
+        
+        # 체크포인트
+        for checkpoint in self.stage_manager.checkpoints:
+            checkpoint.draw(screen, shake_offset)
 
         for chest in self.stage_manager.chests:
             chest.draw(screen, shake_offset)
@@ -580,6 +618,7 @@ class Game:
             self.stage_manager.current_stage,
             self.deaths,
             self.start_time,
+            self.checkpoint_stage,
         )
 
         # 보스 HUD
@@ -591,10 +630,28 @@ class Game:
             elapsed = time.time() - self.start_time
             self.ui_manager.draw_game_over(screen, self.deaths, elapsed)
         elif self.game_state == GAME_STATE_VICTORY:
-            elapsed = time.time() - self.start_time
+            # 승리 시점의 고정된 시간 사용
+            if self.victory_time:
+                elapsed = self.victory_time - self.start_time
+            else:
+                elapsed = time.time() - self.start_time
             self.ui_manager.draw_victory(
                 screen, self.deaths, elapsed, self.items_collected
             )
+    
+    def draw(self, screen):
+        if self.game_state == GAME_STATE_MENU:
+            self.ui_manager.draw_menu(screen)
+            return
+        
+        if self.game_state == GAME_STATE_DEV_MENU:
+            # 게임 화면 위에 개발 메뉴 표시
+            self.draw_game_screen(screen)
+            self.ui_manager.draw_dev_menu(screen)
+            return
+        
+        # 일반 게임 화면
+        self.draw_game_screen(screen)
 
     def handle_menu_input(self, event):
         if event.type == pygame.KEYDOWN:
@@ -616,12 +673,42 @@ class Game:
 
     def handle_game_input(self, event):
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_r:
+            if event.key == pygame.K_ESCAPE:
+                # ESC로 개발 메뉴 열기/닫기
+                if self.game_state == GAME_STATE_PLAYING:
+                    self.game_state = GAME_STATE_DEV_MENU
+                elif self.game_state == GAME_STATE_DEV_MENU:
+                    self.game_state = GAME_STATE_PLAYING
+            elif event.key == pygame.K_r:
                 if self.game_state == GAME_STATE_VICTORY:
                     self.__init__()
             elif event.key == pygame.K_f:
                 self.player.start_dash()
-            elif event.key == pygame.K_z:
-                self.melee_attack()
-            elif event.key == pygame.K_x:
-                self.ranged_attack()
+            # Z, X 키는 update()에서 자동 연사 처리
+    
+    def handle_dev_menu_input(self, event):
+        """개발 메뉴 입력 처리"""
+        if event.type == pygame.KEYDOWN:
+            if event.key in [pygame.K_UP, pygame.K_w]:
+                self.ui_manager.dev_menu_selection = (
+                    self.ui_manager.dev_menu_selection - 1
+                ) % 4
+            elif event.key in [pygame.K_DOWN, pygame.K_s]:
+                self.ui_manager.dev_menu_selection = (
+                    self.ui_manager.dev_menu_selection + 1
+                ) % 4
+            elif event.key == pygame.K_RETURN:
+                selection = self.ui_manager.dev_menu_selection
+                if selection == 0:  # Stage 1
+                    self.load_stage(1)
+                    self.game_state = GAME_STATE_PLAYING
+                elif selection == 1:  # Stage 2
+                    self.load_stage(2)
+                    self.game_state = GAME_STATE_PLAYING
+                elif selection == 2:  # Stage 3
+                    self.load_stage(3)
+                    self.game_state = GAME_STATE_PLAYING
+                elif selection == 3:  # Resume
+                    self.game_state = GAME_STATE_PLAYING
+            elif event.key == pygame.K_ESCAPE:
+                self.game_state = GAME_STATE_PLAYING

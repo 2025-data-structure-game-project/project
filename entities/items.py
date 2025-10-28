@@ -204,6 +204,69 @@ class Trap:
                 )
 
 
+class Checkpoint:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.width = 40
+        self.height = 60
+        self.activated = False
+        self.animation_timer = 0
+
+    def check_activation(self, player):
+        """플레이어가 체크포인트에 닿았는지 확인"""
+        if not self.activated:
+            if (player.x < self.x + self.width and 
+                player.x + player.width > self.x and
+                player.y < self.y + self.height and
+                player.y + player.height > self.y):
+                self.activated = True
+                return True
+        return False
+
+    def draw(self, screen, shake_offset=(0, 0)):
+        """체크포인트 그리기"""
+        draw_x = self.x + shake_offset[0]
+        draw_y = self.y + shake_offset[1]
+        
+        self.animation_timer += 1
+        
+        if self.activated:
+            # 활성화된 체크포인트 (초록색 깃발)
+            color = GREEN
+            # 깃발 흔들림 효과
+            wave = 3 * (1 if (self.animation_timer // 10) % 2 == 0 else -1)
+            
+            # 깃발 기둥
+            pygame.draw.rect(screen, DARK_GRAY, (draw_x + 5, draw_y, 5, self.height))
+            
+            # 깃발
+            flag_points = [
+                (draw_x + 10, draw_y + 5),
+                (draw_x + 35 + wave, draw_y + 15),
+                (draw_x + 10, draw_y + 25)
+            ]
+            pygame.draw.polygon(screen, color, flag_points)
+            
+            # 빛나는 효과
+            if self.animation_timer % 60 < 30:
+                pygame.draw.circle(screen, YELLOW, (int(draw_x + 20), int(draw_y + 15)), 5, 2)
+        else:
+            # 비활성화된 체크포인트 (회색 깃발)
+            color = GRAY
+            
+            # 깃발 기둥
+            pygame.draw.rect(screen, DARK_GRAY, (draw_x + 5, draw_y, 5, self.height))
+            
+            # 깃발
+            flag_points = [
+                (draw_x + 10, draw_y + 5),
+                (draw_x + 35, draw_y + 15),
+                (draw_x + 10, draw_y + 25)
+            ]
+            pygame.draw.polygon(screen, color, flag_points)
+
+
 class Platform:
     def __init__(self, x, y, width, height, disappearing=False):
         self.x = x

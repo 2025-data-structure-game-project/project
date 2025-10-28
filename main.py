@@ -28,11 +28,17 @@ def main():
 
             elif game.game_state == GAME_STATE_PLAYING:
                 game.handle_game_input(event)
+            
+            elif game.game_state == GAME_STATE_DEV_MENU:
+                game.handle_dev_menu_input(event)
 
             elif game.game_state in [GAME_STATE_VICTORY, GAME_STATE_GAME_OVER]:
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                    game = Game()
-                    game.start_game()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_r:
+                        game = Game()
+                        game.start_game()
+                    elif event.key == pygame.K_ESCAPE:
+                        game = Game()  # 메인 메뉴로 돌아가기
 
         if game.game_state == GAME_STATE_PLAYING:
             game.update(keys)

@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import *
 from entities.enemy import Enemy
-from entities.items import Platform, Trap, Item, Chest
+from entities.items import Platform, Trap, Item, Chest, Checkpoint
 
 
 class StageManager:
@@ -16,6 +16,7 @@ class StageManager:
         self.enemies = []
         self.traps = []
         self.chests = []
+        self.checkpoints = []  # 체크포인트
         self.collapsed_platforms = set()  # 붕괴된 발판 인덱스
 
     def load_stage(self, stage_num, player):
@@ -25,6 +26,7 @@ class StageManager:
         self.enemies = []
         self.traps = []
         self.chests = []
+        self.checkpoints = []
 
         if stage_num == 1:
             self._load_stage_1(player)
@@ -61,6 +63,11 @@ class StageManager:
         self.chests = [
             Chest(470, 430, Item(470, 430, "health")),
             Chest(250, 510, Item(250, 510, "speed")),
+        ]
+        
+        # 체크포인트 (스테이지 시작 지점)
+        self.checkpoints = [
+            Checkpoint(50, 590)
         ]
 
     def _load_stage_2(self, player):
@@ -103,6 +110,11 @@ class StageManager:
             Chest(820, 10, Item(820, 10, "sword")),  # 검 획득
             Chest(140, 140, Item(140, 140, "max_health")),
         ]
+        
+        # 체크포인트 (스테이지 시작 지점)
+        self.checkpoints = [
+            Checkpoint(10, 590)
+        ]
 
     def _load_stage_3(self, player):
         
@@ -127,6 +139,11 @@ class StageManager:
         self.enemies = []
         self.traps = []
         self.chests = []
+        
+        # 체크포인트 (스테이지 시작 지점)
+        self.checkpoints = [
+            Checkpoint(50, 590)
+        ]
 
     def collapse_platforms(self):
         
@@ -172,6 +189,12 @@ class StageManager:
 
     def is_at_exit(self, player):
         
-        if self.current_stage < 3:
+        # 보스 스테이지(3)에서는 출구 없음
+        if self.current_stage == 3:
+            return False
+        
+        # 스테이지 1, 2에서만 출구 체크
+        if self.current_stage in [1, 2]:
             return player.x > SCREEN_WIDTH - 50
+        
         return False

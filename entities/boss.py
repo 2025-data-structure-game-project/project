@@ -433,8 +433,6 @@ class Boss:
         # vulnerable 표시
         if self.vulnerable and self.health > BOSS_VULNERABLE_THRESHOLD:
             # 노란 별
-            import math
-
             for i in range(3):
                 angle = (pygame.time.get_ticks() / 500 + i * 2 * math.pi / 3) % (
                     2 * math.pi
@@ -513,7 +511,6 @@ class Boss:
             sword_x = draw_x + (self.width if self.facing_right else 0)
             sword_y = draw_y + 30
             swing_angle = (self.pattern_timer % 15) * 12  # 0 ~ 180도
-            import math
 
             length = 50
             end_x = sword_x + length * math.cos(
@@ -529,8 +526,6 @@ class Boss:
 
         # 스턴 상태 - 별이 빙글빙글
         if self.stunned:
-            import math
-
             for i in range(3):
                 angle = (pygame.time.get_ticks() / 300 + i * 2 * math.pi / 3) % (
                     2 * math.pi

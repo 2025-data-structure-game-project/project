@@ -20,6 +20,7 @@ class UIManager:
     def __init__(self):
         self.menu_selection = 0
         self.flash_timer = 0
+        self.dev_menu_selection = 0  # 개발 메뉴 선택
 
     def draw_menu(self, screen):
         screen.fill(BLACK)
@@ -94,7 +95,7 @@ class UIManager:
             center=True,
         )
 
-    def draw_hud(self, screen, player, stage, deaths, start_time):
+    def draw_hud(self, screen, player, stage, deaths, start_time, checkpoint_stage=None):
         # 하트 그리기
         heart_x = UI_PADDING
         heart_y = UI_PADDING
@@ -118,6 +119,19 @@ class UIManager:
             WHITE,
             BLACK,
         )
+        
+        # 체크포인트 정보
+        if checkpoint_stage is not None:
+            draw_text_outline(
+                screen,
+                f"Checkpoint: Stage {checkpoint_stage}",
+                SCREEN_WIDTH // 2,
+                UI_PADDING,
+                FONT_SMALL,
+                GREEN,
+                BLACK,
+                center=True,
+            )
 
         # 사망 횟수
         draw_text_outline(
@@ -339,7 +353,7 @@ class UIManager:
     def draw_victory(self, screen, deaths, elapsed_time, items_collected):
         # 반투명 배경
         overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-        overlay.fill((*BLACK, 180))
+        overlay.fill((*BLACK, 200))
         screen.blit(overlay, (0, 0))
 
         # 승리 텍스트
@@ -347,64 +361,158 @@ class UIManager:
             screen,
             "VICTORY!",
             SCREEN_WIDTH // 2,
-            SCREEN_HEIGHT // 2 - 150,
+            80,
             FONT_TITLE,
             GOLD,
             BLACK,
             center=True,
         )
 
+        # 엔딩 스토리
         draw_text(
             screen,
-            "Princess Rescued!",
+            "The Dark Knight has been defeated!",
             SCREEN_WIDTH // 2,
-            SCREEN_HEIGHT // 2 - 80,
+            150,
             FONT_MEDIUM,
-            PINK,
+            CYAN,
+            center=True,
+        )
+        
+        draw_text(
+            screen,
+            "The tower's darkness fades away...",
+            SCREEN_WIDTH // 2,
+            185,
+            FONT_SMALL,
+            GRAY,
             center=True,
         )
 
-        # 통계
-        stats_y = SCREEN_HEIGHT // 2
-        draw_text(
+        # 스코어 계산
+        score = self._calculate_score(deaths, elapsed_time, items_collected)
+        rank = self._calculate_rank(deaths, elapsed_time)
+        rank_color = self._get_rank_color(rank)
+
+        # 스코어 박스
+        box_y = 230
+        box_height = 280
+        score_box = pygame.Surface((600, box_height), pygame.SRCALPHA)
+        score_box.fill((*DARK_GRAY, 180))
+        pygame.draw.rect(score_box, GOLD, (0, 0, 600, box_height), 3)
+        screen.blit(score_box, (SCREEN_WIDTH // 2 - 300, box_y))
+
+        # 통계 표시
+        stats_y = box_y + 30
+        
+        draw_text_outline(
             screen,
-            f"Deaths: {deaths}",
+            "=== MISSION COMPLETE ===",
             SCREEN_WIDTH // 2,
             stats_y,
             FONT_MEDIUM,
-            WHITE,
+            YELLOW,
+            BLACK,
             center=True,
         )
 
+        stats_y += 50
+        
+        # 시간 보너스
         time_str = format_time(elapsed_time)
+        time_bonus = max(0, 1000 - int(elapsed_time * 2))
         draw_text(
             screen,
-            f"Time: {time_str}",
-            SCREEN_WIDTH // 2,
-            stats_y + 40,
-            FONT_MEDIUM,
+            f"Clear Time: {time_str}",
+            SCREEN_WIDTH // 2 - 150,
+            stats_y,
+            FONT_SMALL,
             WHITE,
-            center=True,
+        )
+        draw_text(
+            screen,
+            f"+{time_bonus}",
+            SCREEN_WIDTH // 2 + 150,
+            stats_y,
+            FONT_SMALL,
+            GREEN,
         )
 
+        stats_y += 35
+        
+        # 사망 페널티
+        death_penalty = deaths * 100
+        draw_text(
+            screen,
+            f"Deaths: {deaths}",
+            SCREEN_WIDTH // 2 - 150,
+            stats_y,
+            FONT_SMALL,
+            WHITE,
+        )
+        draw_text(
+            screen,
+            f"-{death_penalty}",
+            SCREEN_WIDTH // 2 + 150,
+            stats_y,
+            FONT_SMALL,
+            RED,
+        )
+
+        stats_y += 35
+        
+        # 아이템 보너스
+        item_bonus = items_collected * 200
         draw_text(
             screen,
             f"Items Collected: {items_collected}",
-            SCREEN_WIDTH // 2,
-            stats_y + 80,
-            FONT_MEDIUM,
+            SCREEN_WIDTH // 2 - 150,
+            stats_y,
+            FONT_SMALL,
             WHITE,
+        )
+        draw_text(
+            screen,
+            f"+{item_bonus}",
+            SCREEN_WIDTH // 2 + 150,
+            stats_y,
+            FONT_SMALL,
+            GREEN,
+        )
+
+        stats_y += 50
+        
+        # 구분선
+        pygame.draw.line(
+            screen,
+            GOLD,
+            (SCREEN_WIDTH // 2 - 250, stats_y),
+            (SCREEN_WIDTH // 2 + 250, stats_y),
+            2
+        )
+
+        stats_y += 20
+        
+        # 최종 스코어
+        draw_text_outline(
+            screen,
+            f"TOTAL SCORE: {score}",
+            SCREEN_WIDTH // 2,
+            stats_y,
+            FONT_LARGE,
+            GOLD,
+            BLACK,
             center=True,
         )
 
-        # 등급 계산
-        rank = self._calculate_rank(deaths, elapsed_time)
-        rank_color = self._get_rank_color(rank)
+        stats_y += 50
+        
+        # 등급
         draw_text_outline(
             screen,
-            f"Rank: {rank}",
+            f"RANK: {rank}",
             SCREEN_WIDTH // 2,
-            stats_y + 140,
+            stats_y,
             FONT_LARGE,
             rank_color,
             BLACK,
@@ -414,7 +522,7 @@ class UIManager:
         # 안내
         draw_text(
             screen,
-            "Press R to Play Again",
+            "Press R to Play Again  |  Press ESC to Main Menu",
             SCREEN_WIDTH // 2,
             SCREEN_HEIGHT - 100,
             FONT_SMALL,
@@ -449,6 +557,16 @@ class UIManager:
             center=True,
         )
 
+    def _calculate_score(self, deaths, elapsed_time, items_collected):
+        """최종 스코어 계산"""
+        base_score = 5000
+        time_bonus = max(0, 1000 - int(elapsed_time * 2))
+        death_penalty = deaths * 100
+        item_bonus = items_collected * 200
+        
+        total_score = base_score + time_bonus + item_bonus - death_penalty
+        return max(0, total_score)
+    
     def _calculate_rank(self, deaths, elapsed_time):
         score = 1000
         score -= deaths * 50
@@ -526,3 +644,76 @@ class UIManager:
                 screen, hint, SCREEN_WIDTH // 2, y, FONT_SMALL, YELLOW, center=True
             )
             y += 25
+
+    def draw_dev_menu(self, screen):
+        """개발자 메뉴 - 스테이지 선택"""
+        # 반투명 배경
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((*BLACK, 200))
+        screen.blit(overlay, (0, 0))
+
+        # 타이틀
+        draw_text_outline(
+            screen,
+            "DEV MENU",
+            SCREEN_WIDTH // 2,
+            100,
+            FONT_LARGE,
+            CYAN,
+            BLACK,
+            center=True,
+        )
+
+        draw_text(
+            screen,
+            "Stage Select",
+            SCREEN_WIDTH // 2,
+            160,
+            FONT_SMALL,
+            GRAY,
+            center=True,
+        )
+
+        # 스테이지 옵션
+        options = [
+            "Stage 1 - Tower Entrance",
+            "Stage 2 - Trap Zone", 
+            "Stage 3 - Boss Room",
+            "Resume Game"
+        ]
+        
+        for i, option in enumerate(options):
+            y = 250 + i * 70
+            if self.dev_menu_selection == i:
+                # 선택된 옵션
+                draw_text_outline(
+                    screen,
+                    f"> {option} <",
+                    SCREEN_WIDTH // 2,
+                    y,
+                    FONT_MEDIUM,
+                    YELLOW,
+                    BLACK,
+                    center=True,
+                )
+            else:
+                draw_text(
+                    screen,
+                    option,
+                    SCREEN_WIDTH // 2,
+                    y,
+                    FONT_MEDIUM,
+                    WHITE,
+                    center=True,
+                )
+
+        # 조작 안내
+        draw_text(
+            screen,
+            "Arrow Keys: Navigate | Enter: Select | ESC: Close",
+            SCREEN_WIDTH // 2,
+            SCREEN_HEIGHT - 50,
+            FONT_SMALL,
+            GRAY,
+            center=True,
+        )

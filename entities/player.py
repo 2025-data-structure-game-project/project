@@ -84,6 +84,13 @@ class Player:
 
         # 수평 이동
         self.x += self.velocity_x
+        
+        # 화면 경계 체크
+        if self.x < 0:
+            self.x = 0
+        elif self.x + self.width > SCREEN_WIDTH:
+            self.x = SCREEN_WIDTH - self.width
+        
         self.check_horizontal_collision(platforms)
 
         # 수직 이동
