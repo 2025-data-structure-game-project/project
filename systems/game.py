@@ -48,7 +48,7 @@ class Game:
         self.stage_start_time = time.time()
         self.items_collected = 0
         self.victory_time = None  # 승리 시점의 시간 저장
-        
+
         # 체크포인트 시스템
         self.checkpoint_stage = 1  # 마지막 체크포인트 스테이지
         self.stage_checkpoints = {1: False, 2: False, 3: False}  # 각 스테이지 체크포인트 도달 여부
@@ -60,7 +60,29 @@ class Game:
         # 보스전 특수 상태
         self.platform_collapse_triggered = False
 
+        # 배경음악 초기화
+        self.init_music()
+
         # 초기 스테이지 로드 (메뉴에서 시작하므로 로드 안함)
+
+    def init_music(self):
+        """배경음악 초기화"""
+        try:
+            pygame.mixer.music.load("Mixdown.mp3")
+            pygame.mixer.music.set_volume(0.5)  # 볼륨 50%
+        except pygame.error as e:
+            print(f"배경음악 로드 실패: {e}")
+
+    def play_music(self):
+        """배경음악 재생 (무한 루프)"""
+        try:
+            pygame.mixer.music.play(-1)  # -1은 무한 루프
+        except pygame.error as e:
+            print(f"배경음악 재생 실패: {e}")
+
+    def stop_music(self):
+        """배경음악 정지"""
+        pygame.mixer.music.stop()
 
     def start_game(self):
         self.game_state = GAME_STATE_PLAYING
@@ -74,14 +96,24 @@ class Game:
     def load_stage(self, stage_num):
         self.stage_start_time = time.time()
         self.stage_manager.load_stage(stage_num, self.player)
-        
+
         # 스테이지 진입 시 체크포인트 활성화
         if stage_num not in self.stage_checkpoints or not self.stage_checkpoints[stage_num]:
             self.stage_checkpoints[stage_num] = True
             self.checkpoint_stage = stage_num
 
-        # 보스 생성 (스테이지 3)
+        # 배경음악 제어 (스테이지 1, 2에서만 재생)
+        if stage_num in [1, 2]:
+            if not pygame.mixer.music.get_busy():
+                self.play_music()
+        else:
+            self.stop_music()
+
+        # 보스 생성 (스테이지 3) - 항상 새로운 보스 생성하여 HP 초기화
         if stage_num == 3:
+            # 기존 보스 제거
+            self.boss = None
+            # 새로운 보스 생성 (HP 완전 초기화)
             self.boss = Boss(SCREEN_WIDTH // 2 - 25, 480)
             self.platform_collapse_triggered = False
         else:
