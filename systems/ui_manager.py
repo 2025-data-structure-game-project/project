@@ -25,7 +25,7 @@ class UIManager:
         # 메뉴 배경 이미지 로드
         self.menu_image = None
         try:
-            self.menu_image = pygame.image.load("Gemini_Generated_Image_lpcj8tlpcj8tlpcj.png")
+            self.menu_image = pygame.image.load("static/Gemini_Generated_Image_lpcj8tlpcj8tlpcj.png")
             # 화면 크기에 맞게 조정
             self.menu_image = pygame.transform.scale(self.menu_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
         except pygame.error as e:

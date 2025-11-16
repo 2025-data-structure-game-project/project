@@ -68,7 +68,7 @@ class Game:
     def init_music(self):
         """배경음악 초기화"""
         try:
-            pygame.mixer.music.load("Mixdown.mp3")
+            pygame.mixer.music.load("static/Mixdown.mp3")
             pygame.mixer.music.set_volume(0.5)  # 볼륨 50%
         except pygame.error as e:
             print(f"배경음악 로드 실패: {e}")

@@ -177,20 +177,17 @@ class Player:
         if self.invincible_time > 0 and self.invincible_time % 10 < 5:
             return
 
-        # 플레이어 본체
+        # 플레이어 박스 색상
         if self.hit_flash > 0:
-            color = WHITE
+            color = WHITE  # 피격 시 하얀색
         else:
-            color = BLUE
+            color = BLUE  # 기본 파란색
 
+        # 플레이어 박스 그리기
         pygame.draw.rect(screen, color, (draw_x, draw_y, self.width, self.height))
 
-        # 얼굴
-        eye_y = draw_y + 10
-        if self.facing_right:
-            pygame.draw.circle(screen, BLACK, (int(draw_x + 20), int(eye_y)), 3)
-        else:
-            pygame.draw.circle(screen, BLACK, (int(draw_x + 10), int(eye_y)), 3)
+        # 테두리
+        pygame.draw.rect(screen, BLACK, (draw_x, draw_y, self.width, self.height), 2)
 
         # 검 표시 (소지 중일 때)
         if self.has_sword:

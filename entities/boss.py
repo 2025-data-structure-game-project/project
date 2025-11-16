@@ -47,7 +47,7 @@ class Boss:
         self.pattern_count = 0
 
     def update(self, player, platforms, projectiles):
-        
+
         # 쿨다운 감소
         if self.attack_cooldown > 0:
             self.attack_cooldown -= 1
@@ -381,33 +381,25 @@ class Boss:
         return self.health <= BOSS_VULNERABLE_THRESHOLD or self.vulnerable
 
     def draw(self, screen, shake_offset=(0, 0)):
-        
+
         draw_x = self.x + shake_offset[0]
         draw_y = self.y + shake_offset[1]
 
-        # 보스 본체
+        # 보스 박스 색상 결정
         if self.hit_flash > 0:
-            color = WHITE
+            color = WHITE  # 피격 시 하얀색
         elif self.stunned:
-            color = GRAY
+            color = GRAY  # 스턴 시 회색
         elif self.berserk_mode:
-            color = (200, 0, 0)  # 더 어두운 빨강
+            color = DARK_RED  # 광폭 모드 시 어두운 빨강
         else:
-            color = DARK_RED
+            color = RED  # 기본 빨강
 
+        # 보스 박스 그리기
         pygame.draw.rect(screen, color, (draw_x, draw_y, self.width, self.height))
 
-        # 얼굴
-        pygame.draw.rect(screen, BLACK, (draw_x + 15, draw_y + 10, 20, 20))
-
-        # 눈
-        if self.berserk_mode:
-            eye_color = RED
-        else:
-            eye_color = YELLOW
-
-        pygame.draw.circle(screen, eye_color, (int(draw_x + 20), int(draw_y + 18)), 3)
-        pygame.draw.circle(screen, eye_color, (int(draw_x + 30), int(draw_y + 18)), 3)
+        # 테두리
+        pygame.draw.rect(screen, BLACK, (draw_x, draw_y, self.width, self.height), 3)
 
         # 방어막 (vulnerable 아닐 때)
         if not self.can_be_damaged() and self.health > BOSS_VULNERABLE_THRESHOLD:

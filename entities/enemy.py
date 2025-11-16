@@ -90,47 +90,35 @@ class Enemy:
                 self.direction = -1
 
     def draw(self, screen, shake_offset=(0, 0)):
-        
+
         if not self.alive:
             return
 
         draw_x = self.x + shake_offset[0]
         draw_y = self.y + shake_offset[1]
 
+        # 타입별 박스 색상
         if self.type == "skeleton":
-            # 해골병사 (회색)
-            pygame.draw.rect(screen, GRAY, (draw_x, draw_y, self.width, self.height))
-            # 해골 머리
-            pygame.draw.circle(screen, WHITE, (int(draw_x + 15), int(draw_y + 10)), 8)
-            pygame.draw.circle(screen, BLACK, (int(draw_x + 12), int(draw_y + 8)), 2)
-            pygame.draw.circle(screen, BLACK, (int(draw_x + 18), int(draw_y + 8)), 2)
-
+            color = GRAY
         elif self.type == "slime":
-            # 슬라임 (녹색, 둥근 모양)
-            pygame.draw.ellipse(
-                screen, GREEN, (draw_x, draw_y + 10, self.width, self.height - 10)
-            )
-            # 눈
-            pygame.draw.circle(screen, BLACK, (int(draw_x + 10), int(draw_y + 20)), 3)
-            pygame.draw.circle(screen, BLACK, (int(draw_x + 20), int(draw_y + 20)), 3)
-
+            color = GREEN
         elif self.type == "mage":
-            # 마법사 (보라색)
-            pygame.draw.rect(screen, PURPLE, (draw_x, draw_y, self.width, self.height))
-            # 모자
-            points = [
-                (draw_x + 5, draw_y + 5),
-                (draw_x + 25, draw_y + 5),
-                (draw_x + 15, draw_y - 10),
-            ]
-            pygame.draw.polygon(screen, DARK_GRAY, points)
-            # 눈
-            pygame.draw.circle(screen, YELLOW, (int(draw_x + 15), int(draw_y + 15)), 4)
+            color = PURPLE
+        else:
+            color = ORANGE
 
-            # 공격 차징 표시
-            if self.attack_timer > 100:
-                charge_progress = (self.attack_timer - 100) / 20
-                size = int(5 + charge_progress * 10)
-                magic_x = draw_x + 15 + (self.direction * 20)
-                magic_y = draw_y + 15
-                pygame.draw.circle(screen, PINK, (int(magic_x), int(magic_y)), size, 2)
+        # 적 박스 그리기
+        pygame.draw.rect(screen, color, (draw_x, draw_y, self.width, self.height))
+
+        # 테두리
+        pygame.draw.rect(screen, BLACK, (draw_x, draw_y, self.width, self.height), 2)
+
+        # 마법사 공격 차징 표시
+        if self.type == "mage" and self.attack_timer > 100:
+            charge_progress = (self.attack_timer - 100) / 20
+            size = int(5 + charge_progress * 10)
+            magic_x = draw_x + 15 + (self.direction * 20)
+            magic_y = draw_y + 15
+            # 마법 차징 이펙트
+            pygame.draw.circle(screen, (200, 100, 255), (int(magic_x), int(magic_y)), size, 2)
+            pygame.draw.circle(screen, (255, 150, 255), (int(magic_x), int(magic_y)), size-2, 1)

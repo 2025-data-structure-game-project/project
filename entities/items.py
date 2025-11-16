@@ -336,34 +336,40 @@ class Platform:
         return False
 
     def draw(self, screen, shake_offset=(0, 0)):
-        
+
         if not self.visible:
             return
 
         draw_x = self.x + shake_offset[0]
         draw_y = self.y + shake_offset[1]
 
-        # 발판 색상
+        # 플랫폼 색상 결정
         if self.collapsing and self.warning:
             # 붕괴 중 - 빨간색 깜빡임
             if self.collapse_timer % 20 < 10:
                 color = RED
             else:
                 color = DARK_GRAY
-        elif self.disappearing and self.timer > 0:
-            # 사라지는 발판 - 경고
-            alpha = int(255 * (1 - self.timer / DISAPPEARING_PLATFORM_TIMER))
-            surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            surface.fill((128, 128, 128, alpha))
-            screen.blit(surface, (draw_x, draw_y))
-            return
+        elif self.disappearing:
+            # 사라지는 발판
+            color = (120, 120, 140)
+            if self.timer > 0:
+                # 투명도 효과 (Surface로 처리)
+                alpha = int(255 * (1 - self.timer / DISAPPEARING_PLATFORM_TIMER))
+                platform_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+                platform_surface.fill((*color, alpha))
+                screen.blit(platform_surface, (draw_x, draw_y))
+                pygame.draw.rect(screen, BLACK, (draw_x, draw_y, self.width, self.height), 2)
+                return
         else:
-            color = GRAY
+            # 일반 발판
+            color = DARK_GRAY
 
+        # 플랫폼 박스 그리기
         pygame.draw.rect(screen, color, (draw_x, draw_y, self.width, self.height))
-        pygame.draw.rect(
-            screen, WHITE, (draw_x, draw_y, self.width, self.height), 2
-        )  # 테두리
+
+        # 테두리
+        pygame.draw.rect(screen, BLACK, (draw_x, draw_y, self.width, self.height), 2)
 
         # 붕괴 중 금 가는 효과
         if self.collapsing and self.collapse_timer >= PLATFORM_COLLAPSE_WARNING:
