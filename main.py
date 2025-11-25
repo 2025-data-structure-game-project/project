@@ -1,5 +1,7 @@
-import pygame
 import sys
+
+import pygame
+
 from config import *
 from systems.game import Game
 
@@ -28,7 +30,7 @@ def main():
 
             elif game.game_state == GAME_STATE_PLAYING:
                 game.handle_game_input(event)
-            
+
             elif game.game_state == GAME_STATE_DEV_MENU:
                 game.handle_dev_menu_input(event)
 
