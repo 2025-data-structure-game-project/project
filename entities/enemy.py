@@ -79,15 +79,6 @@ class Enemy(DamageableEntity):
             elif self.on_ground:
                 self.current_animation = "idle"
 
-        elif self.type == "mage":
-            self.attack_timer += 1
-            self.facing_right = player.x > self.x
-
-            if self.attack_timer > MAGE_ATTACK_INTERVAL - 30:
-                self.current_animation = "cast"
-            else:
-                self.current_animation = "idle"
-
     def draw(self, screen, shake_offset=(0, 0)):
         if not self.alive:
             return
@@ -112,24 +103,10 @@ class Enemy(DamageableEntity):
                 color = GRAY
             elif self.type == "slime":
                 color = GREEN
-            elif self.type == "mage":
-                color = PURPLE
             else:
                 color = ORANGE
 
             pygame.draw.rect(screen, color, (draw_x, draw_y, self.width, self.height))
             pygame.draw.rect(
                 screen, BLACK, (draw_x, draw_y, self.width, self.height), 2
-            )
-
-        if self.type == "mage" and self.attack_timer > 100:
-            charge_progress = (self.attack_timer - 100) / 20
-            size = int(5 + charge_progress * 10)
-            magic_x = draw_x + 15 + (self.direction * 20)
-            magic_y = draw_y + 15
-            pygame.draw.circle(
-                screen, (200, 100, 255), (int(magic_x), int(magic_y)), size, 2
-            )
-            pygame.draw.circle(
-                screen, (255, 150, 255), (int(magic_x), int(magic_y)), size - 2, 1
             )

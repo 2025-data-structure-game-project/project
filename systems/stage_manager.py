@@ -94,7 +94,6 @@ class StageManager:
         self.enemies = [
             Enemy(300, 530, "skeleton"),
             Enemy(640, 370, "slime"),
-            Enemy(130, 130, "mage"),
         ]
 
         # 함정
@@ -139,7 +138,7 @@ class StageManager:
         self.enemies = []
         self.traps = []
         self.chests = []
-        
+
         # 체크포인트 (스테이지 시작 지점)
         self.checkpoints = [
             Checkpoint(50, 590)

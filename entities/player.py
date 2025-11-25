@@ -142,7 +142,9 @@ class Player(AnimatedEntity):
                 sprite = sprite.copy()
                 sprite.fill((255, 255, 255, 128), special_flags=pygame.BLEND_RGBA_MULT)
 
-            screen.blit(sprite, (draw_x, draw_y))
+            # 스프라이트를 히트박스 하단에 맞춰서 그리기
+            sprite_offset_y = sprite.get_height() - self.height
+            screen.blit(sprite, (draw_x, draw_y - sprite_offset_y))
         else:
             if self.hit_flash > 0:
                 color = WHITE
@@ -154,28 +156,6 @@ class Player(AnimatedEntity):
                 screen, BLACK, (draw_x, draw_y, self.width, self.height), 2
             )
 
-        if self.has_sword:
-            sword_x = draw_x + self.width if self.facing_right else draw_x - 20
-            sword_y = draw_y + 15
-
-            if self.attacking and self.attack_animation_timer > 0:
-                import math
-
-                progress = 1 - (self.attack_animation_timer / 15)
-                angle = -45 + (progress * 90)
-
-                length = 25
-                center_x = sword_x + 10 if self.facing_right else sword_x
-                center_y = sword_y
-
-                rad = math.radians(angle if self.facing_right else 180 - angle)
-                end_x = center_x + length * math.cos(rad)
-                end_y = center_y - length * math.sin(rad)
-
-                pygame.draw.line(screen, WHITE, (center_x, center_y), (end_x, end_y), 4)
-                pygame.draw.line(screen, CYAN, (center_x, center_y), (end_x, end_y), 2)
-            else:
-                pygame.draw.rect(screen, GRAY, (sword_x, sword_y, 20, 5))
 
         if self.dash_duration > 0:
             trail_x = draw_x - self.dash_direction * 15

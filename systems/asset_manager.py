@@ -153,9 +153,9 @@ class AssetManager:
         )
 
         # 배경
-        self._load_sprite("bg_stage1", "backgrounds/stage1.png", (1920, 1080))
-        self._load_sprite("bg_stage2", "backgrounds/stage2.png", (1920, 1080))
-        self._load_sprite("bg_stage3", "backgrounds/stage3.png", (1920, 1080))
+        self._load_sprite("bg_stage1", "backgrounds/stage1.png", (1000, 700))
+        self._load_sprite("bg_stage2", "backgrounds/stage2.png", (1000, 700))
+        self._load_sprite("bg_stage3", "backgrounds/stage3.png", (1000, 700))
 
         # 컷신
         self._load_sprite("cutscene_ending", "cutscenes/ending.png", (1000, 700))
