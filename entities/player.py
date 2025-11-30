@@ -60,6 +60,7 @@ class Player(AnimatedEntity):
         if (keys[pygame.K_SPACE] or keys[pygame.K_UP]) and self.on_ground:
             self.velocity_y = -self.jump_power
             self.on_ground = False
+            self.assets.play_sound("jump", volume=0.4)
 
         self.x += self.velocity_x
         self.check_screen_bounds()
@@ -86,11 +87,13 @@ class Player(AnimatedEntity):
             self.health -= amount
             self.invincible_time = 60
             self.hit_flash = HIT_FLASH_DURATION
+            self.assets.play_sound("damage", volume=0.5)
 
             if self.health <= 0:
                 self.health = 0
                 self.alive = False
                 self.set_animation("death")
+                self.assets.play_sound("death", volume=0.6)
 
     def heal(self, amount=1):
         self.health = min(self.health + amount, self.max_health)
@@ -101,6 +104,7 @@ class Player(AnimatedEntity):
             self.dash_duration = PLAYER_DASH_DURATION
             self.dash_cooldown = PLAYER_DASH_COOLDOWN
             self.invincible_time = PLAYER_INVINCIBLE_FRAMES
+            self.assets.play_sound("dash", volume=0.4)
             return True
         return False
 
@@ -112,6 +116,7 @@ class Player(AnimatedEntity):
             self.attacking = True
             self.attack_animation_timer = 15
             self.attack_cooldown = PLAYER_ATTACK_COOLDOWN
+            self.assets.play_sound("attack", volume=0.5)
             return True
         return False
 
@@ -121,6 +126,7 @@ class Player(AnimatedEntity):
     def start_ranged_attack(self):
         if self.can_ranged_attack():
             self.ranged_attack_cooldown = PLAYER_RANGED_COOLDOWN
+            self.assets.play_sound("projectile", volume=0.4)
             return True
         return False
 

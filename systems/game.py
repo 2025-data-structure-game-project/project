@@ -80,8 +80,8 @@ class Game:
 
         if stage_num in [1, 2]:
             self.play_music()
-        else:
-            self.stop_music()
+        elif stage_num == 3:
+            self.assets.play_music("boss_bgm", loops=-1, volume=0.5)
 
         if stage_num == 3:
             self.boss = Boss(SCREEN_WIDTH // 2 - 48, 480)
@@ -149,6 +149,7 @@ class Game:
                     ):
                         enemy.alive = False
                         projectile.active = False
+                        self.assets.play_sound("enemy_death", volume=0.5)
                         self.particles.extend(
                             create_particle_burst(
                                 enemy.x + enemy.width // 2,
@@ -171,6 +172,7 @@ class Game:
                 ):
                     if self.boss.take_damage(5):
                         projectile.active = False
+                        self.assets.play_sound("boss_hit", volume=0.6)
                         self.particles.extend(
                             create_particle_burst(
                                 self.boss.x + self.boss.width // 2,
@@ -182,6 +184,8 @@ class Game:
                         if self.boss.health <= 0:
                             self.victory_time = time.time()
                             self.game_state = GAME_STATE_VICTORY
+                            self.stop_music()
+                            self.assets.play_sound("victory", volume=0.7)
                     else:
                         projectile.active = False
                         self.particles.extend(
@@ -210,6 +214,7 @@ class Game:
                 if platform:
                     projectile.active = False
                     self.fires.append(Fire(fire_x, fire_y, platform.width))
+                    self.assets.play_sound("explosion", volume=0.5)
                     self.start_screen_shake(5)
 
         for fire in self.fires[:]:
@@ -257,6 +262,7 @@ class Game:
 
         for checkpoint in self.stage_manager.checkpoints:
             if checkpoint.check_activation(self.player):
+                self.assets.play_sound("checkpoint", volume=0.5)
                 self.particles.extend(
                     create_particle_burst(
                         checkpoint.x + checkpoint.width // 2,
@@ -296,6 +302,8 @@ class Game:
             if self.boss.health <= 0:
                 self.victory_time = time.time()
                 self.game_state = GAME_STATE_VICTORY
+                self.stop_music()
+                self.assets.play_sound("victory", volume=0.7)
 
         update_particles(self.particles)
 
@@ -315,6 +323,8 @@ class Game:
 
     def handle_boss_action(self, action):
         action_type, data = action
+
+        self.assets.play_sound("boss_attack", volume=0.5)
 
         if action_type == "shockwave":
             if self.player.on_ground and abs(self.player.x - data["x"]) < 200:
@@ -402,6 +412,7 @@ class Game:
                 enemy_box = get_entity_box(enemy.x, enemy.y, enemy.width, enemy.height)
                 if check_collision(attack_box, enemy_box):
                     enemy.alive = False
+                    self.assets.play_sound("enemy_death", volume=0.5)
                     self.particles.extend(
                         create_particle_burst(
                             enemy.x + enemy.width // 2,
@@ -417,6 +428,7 @@ class Game:
             )
             if check_collision(attack_box, boss_box):
                 if self.boss.take_damage(1):
+                    self.assets.play_sound("boss_hit", volume=0.6)
                     self.particles.extend(
                         create_particle_burst(
                             self.boss.x + self.boss.width // 2,
@@ -430,6 +442,8 @@ class Game:
                     if self.boss.health <= 0:
                         self.victory_time = time.time()
                         self.game_state = GAME_STATE_VICTORY
+                        self.stop_music()
+                        self.assets.play_sound("victory", volume=0.7)
                 else:
                     self.particles.extend(
                         create_particle_burst(
@@ -479,6 +493,7 @@ class Game:
         self.items_collected += 1
         self.item_message = messages.get(item.type, "아이템 획득!")
         self.item_message_timer = 120
+        self.assets.play_sound("item_collect", volume=0.5)
 
         self.particles.extend(
             create_particle_burst(

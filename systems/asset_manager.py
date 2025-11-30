@@ -161,7 +161,26 @@ class AssetManager:
         self._load_sprite("cutscene_ending", "cutscenes/ending.png", (1000, 700))
 
     def _load_audio(self):
+        # 배경 음악
         self._register_music("bgm", "audio/music/bgm.mp3")
+        self._register_music("boss_bgm", "audio/music/boss_bgm.mp3")
+
+        # 효과음
+        self._load_sound("jump", "audio/sfx/jump.wav")
+        self._load_sound("dash", "audio/sfx/dash.wav")
+        self._load_sound("attack", "audio/sfx/attack.wav")
+        self._load_sound("hit", "audio/sfx/hit.wav")
+        self._load_sound("damage", "audio/sfx/damage.wav")
+        self._load_sound("death", "audio/sfx/death.wav")
+        self._load_sound("enemy_death", "audio/sfx/enemy_death.wav")
+        self._load_sound("boss_hit", "audio/sfx/boss_hit.wav")
+        self._load_sound("boss_attack", "audio/sfx/boss_attack.wav")
+        self._load_sound("projectile", "audio/sfx/projectile.wav")
+        self._load_sound("explosion", "audio/sfx/explosion.wav")
+        self._load_sound("item_collect", "audio/sfx/item_collect.wav")
+        self._load_sound("chest_open", "audio/sfx/chest_open.wav")
+        self._load_sound("checkpoint", "audio/sfx/checkpoint.wav")
+        self._load_sound("victory", "audio/sfx/victory.wav")
 
     def _load_sprite(self, name: str, path: str, size: Tuple[int, int]):
         full_path = os.path.join(self.base_path, path)
@@ -190,7 +209,11 @@ class AssetManager:
 
     def _load_sound(self, name: str, path: str):
         full_path = os.path.join(self.base_path, path)
-        self.sounds[name] = pygame.mixer.Sound(full_path)
+        try:
+            if os.path.exists(full_path):
+                self.sounds[name] = pygame.mixer.Sound(full_path)
+        except:
+            pass
 
     def get_sprite(self, name: str) -> Optional[pygame.Surface]:
         return self.sprites.get(name)
