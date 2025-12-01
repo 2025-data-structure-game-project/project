@@ -12,6 +12,9 @@ class UIManager:
         self.assets = get_asset_manager()
         self.menu_selection = 0
         self.dev_menu_selection = 0
+        self.menu_animation_timer = 0
+        self.victory_particles = []
+        self.victory_animation_timer = 0
 
     def draw_hearts(self, surface, player, x, y):
         for i in range(player.max_health):
@@ -162,32 +165,56 @@ class UIManager:
             )
 
     def draw_menu(self, surface):
-        surface.fill((20, 20, 40))
+        import math
+        from utils.effects import draw_glow, create_screen_fade
+
+        surface.fill((10, 10, 25))
+
+        for i in range(5):
+            x = (self.menu_animation_timer * 2 + i * 200) % (SCREEN_WIDTH + 100) - 50
+            y = 100 + i * 120
+            alpha = int(30 + 20 * math.sin(self.menu_animation_timer * 0.05 + i))
+            star_surf = pygame.Surface((100, 100), pygame.SRCALPHA)
+            pygame.draw.circle(star_surf, (*CYAN, alpha), (50, 50), 30)
+            surface.blit(star_surf, (x, y))
+
+        self.menu_animation_timer += 1
 
         title = "DARKSPIRE"
         subtitle = "Tower of Darkness"
+
+        title_y = 150 + int(5 * math.sin(self.menu_animation_timer * 0.03))
+        draw_glow(surface, SCREEN_WIDTH // 2, title_y, 60, GOLD, 0.4)
 
         draw_text_outline(
             surface,
             title,
             SCREEN_WIDTH // 2,
-            150,
+            title_y,
             FONT_TITLE,
-            WHITE,
-            BLACK,
+            GOLD,
+            (80, 0, 0),
             center=True,
         )
-        draw_text(surface, subtitle, SCREEN_WIDTH // 2 - 100, 220, FONT_MEDIUM, GRAY)
+        draw_text(surface, subtitle, SCREEN_WIDTH // 2 - 100, 220, FONT_MEDIUM, LIGHT_BLUE)
 
         start_color = YELLOW if self.menu_selection == 0 else WHITE
         quit_color = YELLOW if self.menu_selection == 1 else WHITE
+
+        start_scale = 1.1 if self.menu_selection == 0 else 1.0
+        quit_scale = 1.1 if self.menu_selection == 1 else 1.0
+
+        if self.menu_selection == 0:
+            draw_glow(surface, SCREEN_WIDTH // 2, 350, 40, YELLOW, 0.5)
+        if self.menu_selection == 1:
+            draw_glow(surface, SCREEN_WIDTH // 2, 420, 40, YELLOW, 0.5)
 
         draw_text_outline(
             surface,
             "Start Game",
             SCREEN_WIDTH // 2,
             350,
-            FONT_LARGE,
+            int(FONT_LARGE * start_scale),
             start_color,
             BLACK,
             center=True,
@@ -197,7 +224,7 @@ class UIManager:
             "Quit",
             SCREEN_WIDTH // 2,
             420,
-            FONT_LARGE,
+            int(FONT_LARGE * quit_scale),
             quit_color,
             BLACK,
             center=True,
@@ -312,6 +339,10 @@ class UIManager:
         )
 
     def draw_victory(self, surface, deaths, elapsed, items_collected):
+        import random
+        import math
+        from utils.effects import draw_glow, draw_star
+
         overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 150))
         surface.blit(overlay, (0, 0))
@@ -324,14 +355,41 @@ class UIManager:
             if ending_img:
                 surface.blit(ending_img, (0, 0))
 
+        self.victory_animation_timer += 1
+
+        if self.victory_animation_timer % 10 == 0:
+            x = random.randint(50, SCREEN_WIDTH - 50)
+            y = random.randint(50, SCREEN_HEIGHT - 50)
+            self.victory_particles.append({"x": x, "y": y, "life": 60})
+
+        for particle in self.victory_particles[:]:
+            particle["life"] -= 1
+            if particle["life"] <= 0:
+                self.victory_particles.remove(particle)
+            else:
+                alpha = particle["life"] / 60
+                size = 10 + int(10 * (1 - alpha))
+                draw_star(
+                    surface,
+                    particle["x"],
+                    particle["y"],
+                    size,
+                    size // 2,
+                    5,
+                    GOLD if particle["life"] % 2 == 0 else YELLOW,
+                )
+
+        title_scale = 1.0 + 0.1 * math.sin(self.victory_animation_timer * 0.05)
+        draw_glow(surface, SCREEN_WIDTH // 2, 150, 80, GOLD, 0.6)
+
         draw_text_outline(
             surface,
             "VICTORY!",
             SCREEN_WIDTH // 2,
             150,
-            FONT_TITLE,
+            int(FONT_TITLE * title_scale),
             GOLD,
-            BLACK,
+            (100, 50, 0),
             center=True,
         )
 

@@ -7,11 +7,28 @@ import pygame
 from config import *
 
 
+_particle_pool = []
+_max_pool_size = 500
+
+
+def _get_particle_from_pool():
+    if _particle_pool:
+        return _particle_pool.pop()
+    return {}
+
+
+def _return_particle_to_pool(particle):
+    if len(_particle_pool) < _max_pool_size:
+        particle.clear()
+        _particle_pool.append(particle)
+
+
 def create_particle_burst(
     x: float,
     y: float,
     count: int = 10,
     colors: Optional[List[Tuple[int, int, int]]] = None,
+    particle_type: str = "normal",
 ) -> List[Dict]:
     if colors is None:
         colors = [YELLOW, ORANGE, RED]
@@ -19,47 +36,120 @@ def create_particle_burst(
     particles = []
     for _ in range(count):
         angle = random.uniform(0, 2 * math.pi)
-        speed = random.uniform(2, 6)
+
+        if particle_type == "explosion":
+            speed = random.uniform(4, 10)
+            size = random.randint(3, 8)
+            lifetime = random.randint(20, 40)
+        elif particle_type == "sparkle":
+            speed = random.uniform(1, 3)
+            size = random.randint(1, 3)
+            lifetime = random.randint(10, 25)
+        elif particle_type == "smoke":
+            speed = random.uniform(0.5, 2)
+            size = random.randint(4, 10)
+            lifetime = random.randint(30, 60)
+        else:
+            speed = random.uniform(2, 6)
+            size = random.randint(2, 5)
+            lifetime = random.randint(15, 30)
+
         velocity_x = math.cos(angle) * speed
         velocity_y = math.sin(angle) * speed
         color = random.choice(colors)
-        size = random.randint(2, 5)
-        lifetime = random.randint(15, 30)
 
-        particles.append(
-            {
-                "x": x,
-                "y": y,
-                "vx": velocity_x,
-                "vy": velocity_y,
-                "color": color,
-                "size": size,
-                "lifetime": lifetime,
-                "max_lifetime": lifetime,
-            }
-        )
+        particle = _get_particle_from_pool()
+        particle.update({
+            "x": x,
+            "y": y,
+            "vx": velocity_x,
+            "vy": velocity_y,
+            "color": color,
+            "size": size,
+            "lifetime": lifetime,
+            "max_lifetime": lifetime,
+            "type": particle_type,
+        })
+        particles.append(particle)
 
     return particles
 
 
 def update_particles(particles: List[Dict]):
-    for particle in particles[:]:
+    particles_to_remove = []
+
+    for i, particle in enumerate(particles):
         particle["x"] += particle["vx"]
         particle["y"] += particle["vy"]
-        particle["vy"] += 0.3
+
+        particle_type = particle.get("type", "normal")
+
+        if particle_type == "smoke":
+            particle["vy"] -= 0.1
+            particle["vx"] *= 0.98
+        elif particle_type == "sparkle":
+            particle["vy"] += 0.2
+            particle["vx"] *= 0.95
+        else:
+            particle["vy"] += 0.3
+
         particle["lifetime"] -= 1
 
         if particle["lifetime"] <= 0:
-            particles.remove(particle)
+            particles_to_remove.append(i)
 
+    for i in reversed(particles_to_remove):
+        removed = particles.pop(i)
+        _return_particle_to_pool(removed)
+
+
+_particle_surface_cache = {}
 
 def draw_particles(surface: pygame.Surface, particles: List[Dict]):
+    if not particles:
+        return
+
     for particle in particles:
         alpha = particle["lifetime"] / particle["max_lifetime"]
-        size = max(1, int(particle["size"] * alpha))
-        pygame.draw.circle(
-            surface, particle["color"], (int(particle["x"]), int(particle["y"])), size
-        )
+        particle_type = particle.get("type", "normal")
+
+        if particle_type == "smoke":
+            size = int(particle["size"] * (1.5 - alpha * 0.5))
+            color = particle["color"]
+            color_with_fade = (
+                min(255, int(color[0] * alpha)),
+                min(255, int(color[1] * alpha)),
+                min(255, int(color[2] * alpha)),
+            )
+        elif particle_type == "sparkle":
+            size = max(1, int(particle["size"] * (0.5 + alpha * 0.5)))
+            color_with_fade = particle["color"]
+        else:
+            size = max(1, int(particle["size"] * alpha))
+            color_with_fade = particle["color"]
+
+        if size > 0:
+            alpha_value = int(255 * alpha)
+
+            cache_key = (size, particle_type)
+            if cache_key not in _particle_surface_cache:
+                _particle_surface_cache[cache_key] = pygame.Surface(
+                    (size * 2, size * 2), pygame.SRCALPHA
+                )
+
+            particle_surf = _particle_surface_cache[cache_key].copy()
+            particle_surf.fill((0, 0, 0, 0))
+
+            pygame.draw.circle(
+                particle_surf,
+                (*color_with_fade, alpha_value),
+                (size, size),
+                size,
+            )
+            surface.blit(
+                particle_surf,
+                (int(particle["x"]) - size, int(particle["y"]) - size),
+            )
 
 
 def shake_screen(intensity: int = SCREEN_SHAKE_INTENSITY) -> Tuple[int, int]:
@@ -285,3 +375,103 @@ def format_time(seconds: float) -> str:
 
 def random_range(min_val: float, max_val: float) -> float:
     return random.uniform(min_val, max_val)
+
+
+_glow_surface_cache = {}
+
+def draw_glow(
+    surface: pygame.Surface,
+    x: int,
+    y: int,
+    radius: int,
+    color: Tuple[int, int, int],
+    intensity: float = 0.5,
+):
+    cache_key = (radius, color, int(intensity * 100))
+
+    if cache_key not in _glow_surface_cache:
+        glow_surf = pygame.Surface((radius * 4, radius * 4), pygame.SRCALPHA)
+        for i in range(3, 0, -1):
+            alpha = int(intensity * 255 / (i + 1))
+            current_radius = radius * i // 2
+            pygame.draw.circle(
+                glow_surf,
+                (*color, alpha),
+                (radius * 2, radius * 2),
+                current_radius,
+            )
+        _glow_surface_cache[cache_key] = glow_surf
+
+        if len(_glow_surface_cache) > 50:
+            _glow_surface_cache.pop(next(iter(_glow_surface_cache)))
+
+    surface.blit(_glow_surface_cache[cache_key], (x - radius * 2, y - radius * 2))
+
+
+_trail_surface = None
+
+def draw_trail(
+    surface: pygame.Surface,
+    positions: List[Tuple[float, float]],
+    color: Tuple[int, int, int],
+    width: int = 5,
+):
+    global _trail_surface
+
+    if len(positions) < 2:
+        return
+
+    if _trail_surface is None:
+        _trail_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+
+    _trail_surface.fill((0, 0, 0, 0))
+
+    for i in range(len(positions) - 1):
+        alpha = int(255 * (i + 1) / len(positions))
+        current_width = max(1, int(width * (i + 1) / len(positions)))
+
+        pygame.draw.line(
+            _trail_surface,
+            (*color, alpha),
+            (int(positions[i][0]), int(positions[i][1])),
+            (int(positions[i + 1][0]), int(positions[i + 1][1])),
+            current_width,
+        )
+
+    surface.blit(_trail_surface, (0, 0))
+
+
+def create_screen_fade(
+    surface: pygame.Surface, alpha: int, color: Tuple[int, int, int] = BLACK
+):
+    fade_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    fade_surf.fill((*color, alpha))
+    surface.blit(fade_surf, (0, 0))
+
+
+def draw_lightning(
+    surface: pygame.Surface,
+    start_x: float,
+    start_y: float,
+    end_x: float,
+    end_y: float,
+    segments: int = 8,
+    color: Tuple[int, int, int] = CYAN,
+):
+    points = [(start_x, start_y)]
+
+    for i in range(1, segments):
+        t = i / segments
+        x = start_x + (end_x - start_x) * t
+        y = start_y + (end_y - start_y) * t
+
+        offset_x = random.uniform(-20, 20)
+        offset_y = random.uniform(-20, 20)
+
+        points.append((x + offset_x, y + offset_y))
+
+    points.append((end_x, end_y))
+
+    for i in range(len(points) - 1):
+        pygame.draw.line(surface, color, points[i], points[i + 1], 3)
+        pygame.draw.line(surface, WHITE, points[i], points[i + 1], 1)

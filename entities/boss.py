@@ -189,8 +189,20 @@ class Boss(DamageableEntity):
         return self.health <= BOSS_VULNERABLE_THRESHOLD or self.vulnerable
 
     def draw(self, screen, shake_offset=(0, 0)):
+        from utils.effects import draw_glow
+
         draw_x = self.x + shake_offset[0]
         draw_y = self.y + shake_offset[1]
+
+        if self.berserk_mode:
+            draw_glow(
+                screen,
+                int(draw_x + self.width // 2),
+                int(draw_y + self.height // 2),
+                60,
+                RED,
+                0.4 + 0.2 * abs(math.sin(pygame.time.get_ticks() / 200)),
+            )
 
         sprite_key = "boss_idle"
         if self.berserk_mode:

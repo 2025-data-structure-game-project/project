@@ -78,3 +78,30 @@ def point_in_rect(
     rect_h: float,
 ) -> bool:
     return rect_x <= point_x <= rect_x + rect_w and rect_y <= point_y <= rect_y + rect_h
+
+
+def fast_distance_sq(x1: float, y1: float, x2: float, y2: float) -> float:
+    dx = x2 - x1
+    dy = y2 - y1
+    return dx * dx + dy * dy
+
+
+def is_near(
+    x1: float, y1: float, x2: float, y2: float, max_distance: float
+) -> bool:
+    max_dist_sq = max_distance * max_distance
+    return fast_distance_sq(x1, y1, x2, y2) <= max_dist_sq
+
+
+def broad_phase_check(
+    x1: float, y1: float, w1: float, h1: float,
+    x2: float, y2: float, w2: float, h2: float,
+    margin: float = 50.0
+) -> bool:
+    center1_x = x1 + w1 / 2
+    center1_y = y1 + h1 / 2
+    center2_x = x2 + w2 / 2
+    center2_y = y2 + h2 / 2
+
+    max_dist = max(w1, h1, w2, h2) + margin
+    return is_near(center1_x, center1_y, center2_x, center2_y, max_dist)

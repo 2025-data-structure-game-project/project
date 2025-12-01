@@ -20,21 +20,27 @@ from utils.effects import (
 )
 from utils.geometry import (
     angle_between,
+    broad_phase_check,
     check_collision,
     check_rect_collision,
     clamp,
     distance,
+    fast_distance_sq,
     get_attack_box,
     get_entity_box,
+    is_near,
     lerp,
     point_in_rect,
 )
 
 __all__ = [
+    "broad_phase_check",
     "check_collision",
     "check_rect_collision",
+    "fast_distance_sq",
     "get_attack_box",
     "get_entity_box",
+    "is_near",
     "distance",
     "lerp",
     "clamp",

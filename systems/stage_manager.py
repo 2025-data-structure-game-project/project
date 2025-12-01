@@ -187,13 +187,13 @@ class StageManager:
         return None
 
     def is_at_exit(self, player):
-        
+
         # 보스 스테이지(3)에서는 출구 없음
         if self.current_stage == 3:
             return False
-        
-        # 스테이지 1, 2에서만 출구 체크
+
+        # 스테이지 1, 2에서만 출구 체크 - 위쪽으로 뚫고 나가기
         if self.current_stage in [1, 2]:
-            return player.x > SCREEN_WIDTH - 50
-        
+            return player.y < 0
+
         return False

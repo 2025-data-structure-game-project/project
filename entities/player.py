@@ -28,6 +28,9 @@ class Player(AnimatedEntity):
         self.attack_animation_timer = 0
         self.ranged_attack_cooldown = 0
 
+        self.trail_positions = []
+        self.max_trail_length = 8
+
     def update(self, keys, platforms):
         self.update_timers()
         self.update_animation()
@@ -69,6 +72,14 @@ class Player(AnimatedEntity):
         self.apply_gravity()
         self.y += self.velocity_y
         self.check_platform_collision_vertical(platforms)
+
+        if self.dash_duration > 0:
+            self.trail_positions.append((self.x + self.width // 2, self.y + self.height // 2))
+            if len(self.trail_positions) > self.max_trail_length:
+                self.trail_positions.pop(0)
+        else:
+            if len(self.trail_positions) > 0:
+                self.trail_positions.pop(0)
 
         if not self.on_ground:
             if self.velocity_y < 0:
@@ -131,8 +142,34 @@ class Player(AnimatedEntity):
         return False
 
     def draw(self, screen, shake_offset=(0, 0)):
+        from utils.effects import draw_trail, draw_glow, draw_sword_slash
+        import math
+
         draw_x = self.x + shake_offset[0]
         draw_y = self.y + shake_offset[1]
+
+        if len(self.trail_positions) > 1:
+            adjusted_positions = [
+                (pos[0] + shake_offset[0], pos[1] + shake_offset[1])
+                for pos in self.trail_positions
+            ]
+            draw_trail(screen, adjusted_positions, CYAN, 8)
+
+        if self.dash_duration > 0:
+            draw_glow(
+                screen,
+                int(draw_x + self.width // 2),
+                int(draw_y + self.height // 2),
+                30,
+                CYAN,
+                0.7,
+            )
+
+        if self.attacking and self.attack_animation_timer > 10:
+            slash_x = draw_x + (self.width if self.facing_right else -40)
+            slash_y = draw_y + self.height // 4
+            angle = -0.5 if self.facing_right else 0.5
+            draw_sword_slash(screen, slash_x, slash_y, 60, 40, angle, CYAN)
 
         if self.invincible_time > 0 and self.invincible_time % 10 < 5:
             return
@@ -148,7 +185,6 @@ class Player(AnimatedEntity):
                 sprite = sprite.copy()
                 sprite.fill((255, 255, 255, 128), special_flags=pygame.BLEND_RGBA_MULT)
 
-            # 스프라이트를 히트박스 하단에 맞춰서 그리기
             sprite_offset_y = sprite.get_height() - self.height
             screen.blit(sprite, (draw_x, draw_y - sprite_offset_y))
         else:
@@ -161,11 +197,3 @@ class Player(AnimatedEntity):
             pygame.draw.rect(
                 screen, BLACK, (draw_x, draw_y, self.width, self.height), 2
             )
-
-
-        if self.dash_duration > 0:
-            trail_x = draw_x - self.dash_direction * 15
-            trail_alpha = 100
-            trail_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            trail_surface.fill((*CYAN, trail_alpha))
-            screen.blit(trail_surface, (trail_x, draw_y))

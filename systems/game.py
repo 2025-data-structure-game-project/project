@@ -14,6 +14,7 @@ from systems.asset_manager import get_asset_manager
 from systems.stage_manager import StageManager
 from systems.ui_manager import UIManager
 from utils import (
+    broad_phase_check,
     check_collision,
     check_rect_collision,
     create_particle_burst,
@@ -52,6 +53,9 @@ class Game:
 
         self.item_message = ""
         self.item_message_timer = 0
+
+        self.hitstop_timer = 0
+        self.time_scale = 1.0
 
     def play_music(self):
         self.assets.play_music("bgm", loops=-1, volume=0.5)
@@ -103,6 +107,10 @@ class Game:
         if self.game_state != GAME_STATE_PLAYING:
             return
 
+        if self.hitstop_timer > 0:
+            self.hitstop_timer -= 1
+            return
+
         self.player.update(keys, self.stage_manager.platforms)
 
         if keys[pygame.K_x]:
@@ -116,17 +124,21 @@ class Game:
             enemy.update(self.stage_manager.platforms, self.player)
 
             if enemy.alive and self.player.invincible_time <= 0:
-                if check_rect_collision(
-                    self.player.x,
-                    self.player.y,
-                    self.player.width,
-                    self.player.height,
-                    enemy.x,
-                    enemy.y,
-                    enemy.width,
-                    enemy.height,
+                if broad_phase_check(
+                    self.player.x, self.player.y, self.player.width, self.player.height,
+                    enemy.x, enemy.y, enemy.width, enemy.height
                 ):
-                    self.player.take_damage()
+                    if check_rect_collision(
+                        self.player.x,
+                        self.player.y,
+                        self.player.width,
+                        self.player.height,
+                        enemy.x,
+                        enemy.y,
+                        enemy.width,
+                        enemy.height,
+                    ):
+                        self.player.take_damage()
 
         for projectile in self.projectiles[:]:
             projectile.update()
@@ -137,28 +149,34 @@ class Game:
 
             if projectile.from_player:
                 for enemy in self.stage_manager.enemies:
-                    if enemy.alive and check_rect_collision(
-                        projectile.x,
-                        projectile.y,
-                        projectile.width,
-                        projectile.height,
-                        enemy.x,
-                        enemy.y,
-                        enemy.width,
-                        enemy.height,
-                    ):
-                        enemy.alive = False
-                        projectile.active = False
-                        self.assets.play_sound("enemy_death", volume=0.5)
-                        self.particles.extend(
-                            create_particle_burst(
-                                enemy.x + enemy.width // 2,
-                                enemy.y + enemy.height // 2,
-                                15,
-                                [YELLOW, ORANGE, WHITE],
-                            )
-                        )
-                        break
+                    if enemy.alive:
+                        if broad_phase_check(
+                            projectile.x, projectile.y, projectile.width, projectile.height,
+                            enemy.x, enemy.y, enemy.width, enemy.height,
+                            margin=30.0
+                        ):
+                            if check_rect_collision(
+                                projectile.x,
+                                projectile.y,
+                                projectile.width,
+                                projectile.height,
+                                enemy.x,
+                                enemy.y,
+                                enemy.width,
+                                enemy.height,
+                            ):
+                                enemy.alive = False
+                                projectile.active = False
+                                self.assets.play_sound("enemy_death", volume=0.5)
+                                self.particles.extend(
+                                    create_particle_burst(
+                                        enemy.x + enemy.width // 2,
+                                        enemy.y + enemy.height // 2,
+                                        15,
+                                        [YELLOW, ORANGE, WHITE],
+                                    )
+                                )
+                                break
 
                 if self.boss and check_rect_collision(
                     projectile.x,
@@ -417,10 +435,13 @@ class Game:
                         create_particle_burst(
                             enemy.x + enemy.width // 2,
                             enemy.y + enemy.height // 2,
-                            15,
-                            [YELLOW, WHITE],
+                            20,
+                            [YELLOW, WHITE, ORANGE],
+                            "explosion",
                         )
                     )
+                    self.hitstop_timer = 2
+                    self.start_screen_shake(4)
 
         if self.boss:
             boss_box = get_entity_box(
@@ -433,11 +454,13 @@ class Game:
                         create_particle_burst(
                             self.boss.x + self.boss.width // 2,
                             self.boss.y + self.boss.height // 2,
-                            15,
+                            20,
                             [RED, ORANGE, YELLOW],
+                            "explosion",
                         )
                     )
-                    self.start_screen_shake(5)
+                    self.start_screen_shake(8)
+                    self.hitstop_timer = 3
 
                     if self.boss.health <= 0:
                         self.victory_time = time.time()

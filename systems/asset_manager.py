@@ -23,6 +23,11 @@ class AssetManager:
         self.music_paths: Dict[str, str] = {}
         self.base_path = "assets"
 
+        self.master_volume = 1.0
+        self.sfx_volume = 1.0
+        self.music_volume = 1.0
+        self.current_music = None
+
         self.dummy_colors = {
             "player": (100, 150, 255),
             "enemy": (255, 100, 100),
@@ -227,24 +232,52 @@ class AssetManager:
     def play_sound(self, name: str, volume: float = 1.0):
         sound = self.get_sound(name)
         if sound:
-            sound.set_volume(volume)
+            final_volume = volume * self.sfx_volume * self.master_volume
+            sound.set_volume(final_volume)
             sound.play()
 
-    def play_music(self, name: str, loops: int = -1, volume: float = 0.5):
+    def play_music(self, name: str, loops: int = -1, volume: float = 0.5, fade_in: int = 0):
+        if self.current_music == name and pygame.mixer.music.get_busy():
+            return
+
         music_path = self.get_music_path(name)
         if music_path:
             try:
                 pygame.mixer.music.load(music_path)
-                pygame.mixer.music.set_volume(volume)
-                pygame.mixer.music.play(loops)
+                final_volume = volume * self.music_volume * self.master_volume
+                pygame.mixer.music.set_volume(final_volume)
+                if fade_in > 0:
+                    pygame.mixer.music.play(loops, fade_ms=fade_in)
+                else:
+                    pygame.mixer.music.play(loops)
+                self.current_music = name
             except:
                 pass
 
     def stop_music(self):
         pygame.mixer.music.stop()
+        self.current_music = None
 
     def fade_out_music(self, milliseconds: int = 1000):
         pygame.mixer.music.fadeout(milliseconds)
+        self.current_music = None
+
+    def set_master_volume(self, volume: float):
+        self.master_volume = max(0.0, min(1.0, volume))
+        if pygame.mixer.music.get_busy():
+            pygame.mixer.music.set_volume(
+                self.music_volume * self.master_volume
+            )
+
+    def set_sfx_volume(self, volume: float):
+        self.sfx_volume = max(0.0, min(1.0, volume))
+
+    def set_music_volume(self, volume: float):
+        self.music_volume = max(0.0, min(1.0, volume))
+        if pygame.mixer.music.get_busy():
+            pygame.mixer.music.set_volume(
+                self.music_volume * self.master_volume
+            )
 
 
 def get_asset_manager() -> AssetManager:
